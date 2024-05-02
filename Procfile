@@ -1,0 +1,1 @@
+web: gunicorn SmartCookBackend.wsgi --log-file -

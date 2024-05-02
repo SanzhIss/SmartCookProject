@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydatabase
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - marketplace
+
+
+  redis:
+   image: redis
+   restart: always
+   ports:
+     - "6379:6379"
+   networks:
+     - marketplace
+
+  webapp:
+   build:
+     context: .
+     dockerfile: Dockerfile
+   depends_on:
+#     - db
+     - redis
+   networks:
+     - marketplace
+   ports:
+     - '8000:8000'
+   volumes:
+     - .:/code
+     - static_volume:/code/static
+
+
+  worker:
+   restart: always
+   build:
+     context: .
+     dockerfile: ./celery/Dockerfile
+   command: celery -A site_market worker -l info
+   volumes:
+     - ./:/code
+   depends_on:
+     - webapp
+     - redis
+#    entrypoint: ["/bin/sh", "-c"]
+
+   networks:
+     - marketplace
+
+  beat:
+   restart: always
+   build:
+     context: .
+     dockerfile: ./celery/Dockerfile
+   command: celery -A site_market beat -l info
+   volumes:
+     - ./:/code
+   networks:
+      - marketplace
+
+   depends_on:
+     - webapp
+     - redis
+     - worker
+#    entrypoint: ["/bin/sh", "-c"]
+
+
+networks:
+  marketplace:
+
+volumes:
+  postgres-data:
+  static_volume:
+  db_data:
