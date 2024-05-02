@@ -10,6 +10,14 @@ from django.utils import timezone
 
 # Класс MyUserManager отвечает за создание и управление пользователями.
 class MyUserManager(BaseUserManager):
+
+    def create_superuser(self, first_name, last_name, email, password):
+        user = self.create_user(first_name, last_name, email, password)
+        user.is_superuser = True
+        user.is_staff = True
+        user.save(using=self._db)
+        return user
+
     def create_user(self, first_name, last_name, email, password=None):
         if not email:
             raise ValueError('Пользователи должны иметь адрес электронной почты или номер телефона')
@@ -19,19 +27,8 @@ class MyUserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, first_name, last_name, email, password):
-        user = self.create_user(first_name, last_name, email, password)
-        user.is_superuser = True
-        user.is_staff = True
-        user.save(using=self._db)
-        return user
-
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
-    password_validator = RegexValidator(
-        regex=r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,20}$',
-        message="Пароль должен быть длиной от 8 до 20 символов, начинаться с буквы и содержать как минимум одну цифру."
-    )
 
     first_name = models.CharField(max_length=30, null=True, blank=True, default='')
     last_name = models.CharField(max_length=30, null=True, blank=True, default='')
@@ -64,6 +61,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['first_name', 'last_name']
+
+    password_validator = RegexValidator(
+        regex=r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,20}$',
+        message="Пароль должен быть длиной от 8 до 20 символов, начинаться с буквы и содержать как минимум одну цифру."
+    )
 
     def __str__(self):
         return self.email
